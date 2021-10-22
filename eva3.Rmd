@@ -1,0 +1,554 @@
+---
+title: "Evaluación 3"
+author: "Diana Laura Javier Garcia"
+date: "4/11/2020"
+output:
+  
+  html_document: default
+  word_document: default
+---
+# 1. Una entidad bancaria tiene oficinas en cinco zonas (A, B, C, D y E). Se conoce el valor mensual (en miles de euros) de varias hipótecas elegidas al azar de entre las concebidas en cada una de las regiones en el último año. 
+a) Compruebe que se verifican los supuestos del análisis de la varianza. 
+Pregunta: Hay diferencias en el valor medio de las hipótecas según la zona. Determine en que zonas hay diferencias. 
+
+Como se menciona en el enunciado, este problema consiste en analizar los datos de cinco grupos de hipotecas organizados según la zona, los cuales fueron obtenidos aleatoriamente. Como sabemos, el módelo del análisis de la varianza (ANOVA) permite comparar entre grupos las medias de una variable continua, por lo tanto para resolver este problema se realizó este análisis. 
+
+Para resolver este problema se inicia leyendo los datos, los cuales se encuentran en el archivo *datos*:
+
+
+```{r}
+datos<- read.csv("datos.csv")
+names(datos)
+
+```
+
+Como se puede observar, y como se mencionó anteriormente, la lectura de los datos permite mostrar las cinco muestras identificadas con la letra A hasta la E, donde el factor común es la hipóteca la cual depende de la zona. 
+
+Para obtener el tamaño de cada una de las muestras se emplearon las siguientes instrucciones:
+  
+
+```{r}
+nA<- length(datos$ï..A)
+```
+
+```{r}
+nB<- length(datos$B)
+```
+
+```{r}
+nC<- length(datos$c)
+```
+
+```{r}
+nD<- length(datos$D)
+```
+
+```{r}
+nE<- length(datos$E)
+```
+
+Antes de iniciar con el análisis de ANOVA, conviene tener una idea del comportamiento estadistico de los datos, para ello se estudiaron algunos parámetros estadisticos descriptivos. Así, organizando los datos en forma vertical:
+
+
+```{r}
+datos.vert<-data.frame(zona=gl(5,12),hipoteca=c(datos$ï..A,datos$B,datos$C,datos$D,datos$E))
+datos.vert
+```
+
+
+Así, se generó el diagrama de caja de los grupos, donde 1 se refiere a la zona A, 2 a la zona B, 3 a la C, 4 a la D y finalmente 5 a la zona E:
+
+
+```{r}
+boxplot(hipoteca ~ zona, xlab = "zona", ylab = "hipoteca", data = datos.vert, col=c("yellow", "blue", "white", "green","red"))
+```
+
+Y se obtuvo el resumen estadístico de cada uno:
+
+```{r}
+summary(datos)
+```
+
+
+A simple vista, el diagrama de caja permite mostrar que las zonas 4 y 5, es decir D y E, tiene una media que aunque difieren entre si por tres unidades son muy parecidas. Lo mismo ocurre con las zonas B y C, que tienen una media de 47 aproximadamente, y la que difiere entre ellos es la zona A, la cual tiene la mayor media comparada con las demás zonas, y además de que tiene valores máximos  y minimos muy destacables. En la siguiente subsección se realizó el análisis de ANOVA que permitió confirmar estas observaciones. 
+
+En este punto, conviene recordar las hipótesis del análisis ANOVA. En primer lugar, se parte de que la hipótesis nula $H_0$ es que la media de la variable estudiada es la misma en los diferentes grupos, en contra posición a la hipótesis alternativa de que al menos dos medias son diferentes. La instrucción para realizar el ANOVA es: *aov*. En este trabajo se guarda la instrucción como *modelo*. Y  posteriormente , los resultados se ven con el comando *summary*, como se muestra a continuación:
+
+
+```{r}
+modelo <- aov(hipoteca ~ zona, data = datos.vert)
+modelo
+```
+
+```{r}
+summary(modelo)
+```
+
+Analizando los resultados de la tabla ANOVa tenemos las siguientes observaciones:
+
+ 1. Los grados de libertad del factor son 4
+ 2. Los grados de libertad residuales con 55
+ 3. La suma de cuadrado de los grupos son 6672.
+ 4. La suma de cuadrados del error son  11311.
+ 5. Las medias correspondientes de las sumas de cuadrados de los grupos son 1668.1.
+ 6. El valor estadístico F es 8.112.
+ 7. El valor de p es 3.25e-05
+ 
+ De la observación 7, dado que p es menor que 0.05 se concluye que existe un efecto significativo de la variable zona, lo que conduce a la pregunta: ¿Cuáles son los grupos que producen estas diferencias?
+ 
+Para responder a la pregunta, se empleó el método de Tukey, con la función: *TukeyHSD* y posteriormente se graficaron los intervalos de confianza.
+
+```{r}
+intervals = TukeyHSD(modelo)
+intervals
+print(intervals)
+```
+
+```{r}
+plot(intervals)
+```
+
+El método de Turkey indica que las diferencias entre medias en las que el intervalo de confianza engloba los límites inferior y superior que no contienen el valor cero, son estadísticamente significativas, además de que el valor P es menor a 0.05. Para este problema, vemos que los grupos con diferencias significativas son los siguientes:
+
+4-3, es decir D y C
+
+4-2, es decir D y B
+
+5-1, es decir E y A
+
+4-1, es decir D y A
+
+
+Mientras que, los grupos que tocan en cero, es decir, que tienen diferencia entre las medias no estadisticamente significativa y con valor de p mayor a 0.05 son:
+
+2-1, es decir B y A
+
+3-1, es decir C y A
+
+3-2, es decir C y B
+
+5-2, es decir E y B
+
+5-3, es decir E y C
+
+Vemos que esto coincide con la observación numéro siete del análisis descriptivo, donde el diagrama de cajas permitió notar difencias importantes entre la media del grupo A con el resto. 
+
+Para verificar la normalidad de manera grafica, se presenta a continuación el histograma con el ajuste a una curva normal. Como se puede observar, las hipotecas se ajustan normalmente. 
+
+
+
+```{r}
+par (mfrow=c(2,2))
+g = datos.vert$hipoteca
+m<-mean(g)
+std<-sqrt(var(g))
+
+hist(g, breaks = "Sturges", col = "cyan", main= "Distribución de la
+hipóteca", cex.main=1.0)
+hist(g, density=30, breaks = "Sturges", prob=TRUE, main= "Distribución
+hipoteca", cex.main=1.0)
+hist(g, density=30, prob=TRUE, col = 12,
+xlab="Hipoteca", ylim=c(0, 0.050),
+main="Curva Normal sobre Hipoteca", cex.main=1.0)
+curve(dnorm(x, mean=m, sd=std),
+col="darkblue", lwd=2, add=TRUE, yaxt="n")
+zg<-(g-m)/std
+hist(zg, density=30, prob=TRUE, col = 12,
+xlab="Hipoteca", ylim=c(0, 0.55),
+main="Curva Normal Estándar sobre hipoteca", cex.main=1.0)
+curve(dnorm(x, mean=0, sd=1),
+col="darkblue", lwd=2, add=TRUE, yaxt="n")
+```
+
+```{r}
+par(mfrow=c(2,2))
+hist(datos.vert$hipoteca, cex.main=1.0)
+qqnorm(datos.vert$hipoteca, cex.main=1.0)
+qqnorm(modelo$residuals)
+qqline(modelo$residuals, col = "red")
+hist(modelo$residuals, cex.main=1.0)
+```
+
+De la gráfica *QQ norm* de residuos, se observa que estos siguen una linea recta (color rojo), lo cual indica normalidad. Además de las gráficas, se presenta a continuación las pruebas de Shapiro Wilk y Komogorov, ambas pruebas plantean la hipótesis nula que una muestra proviene de una distribución normal, y por ende plantea una hipótesis alternativa que sostiene que la distribución no es normal. Como se puede observar, ambas pruebas tienen un p-valor mayor a 0.05, por lo tanto se concluye que los datos se distribuyen normalmente.
+
+## Prueba de Shapiro Wilk
+
+```{r}
+sw<-shapiro.test(datos.vert$hipoteca)
+print(sw)
+```
+
+## Prueba de Kolmogorov
+
+```{r}
+ks<-ks.test(datos.vert$hipoteca, "pnorm", mean=mean(datos.vert$hipoteca),sd=sd(datos.vert$hipoteca))
+print(ks)
+```
+
+## Prueba de igualdad de varianzas
+
+
+Para verificar  la igualdad de varianzas se aplicó la Prueba de Bartlett, la cual permite contrastar la igualdad de varianza en 2 o más poblaciones sin necesidad de que el tamaño de los grupos sea el mismo. Como se puede observar, el p-valor es mayor a 0.05, por lo tanto se cumple la hipotesis de que las varianzas no presentan diferencias significativas. 
+
+```{r}
+bartlett.test(hipoteca ~ zona, data=datos.vert)
+
+```
+Respecto al análisis estadistico se tienen las siguientes observaciones:
+
+1. Se comprobó la hipotesis de normalidad por medio de la prueba de Shapiro Wilk y Komogorov, donde se encontraron p-valores mayores el 0.05.
+
+2. Se comprobo la igualdad de varianzas por medio de la prueba de Bartlett, en la cual se obtuvo un p-valor mayor a 0.05.
+
+Respecto a la hipotecas en función de la zona se encontró:
+
+1. La zona A es la que tiene valores mayores de hipoteca.
+
+2. La zona B y C tienen valores muy similares, menores a la zona A.
+
+3. Las zonas que tienen menores valores de hipoteca son D y E, y son muy similares entre sí. 
+
+Finalmente se responde la pregunta:
+
+Con base a los resultados obtenidos por el método de Turkey se encontró  que los grupos con diferencias significativas son los siguientes:
+
+4-3, es decir D y C
+
+4-2, es decir D y B
+
+5-1, es decir E y A
+
+4-1, es decir D y A
+
+Mientras que, los grupos que tienen diferencia entre las medias no estadisticamente significativa son:
+
+2-1, es decir B y A
+
+3-1, es decir C y A
+
+3-2, es decir C y B
+
+5-2, es decir E y B
+
+5-3, es decir E y C
+
+
+
+
+# 3. Una empresa dedicada a la fabricación de pañales está pensando en lazar al mercado un nuevo producto. Para ello está probando con tres materiales y tres procesos de fabricación distintos. Los datos de poder absorbente (en gramos líquido por gramo de pañal) de diez pañales, están registrados el objeto pr7.3
+a) ¿El efecto del material en el poder absorbente depende del proceso o del material? 
+b) ¿Podría un material? ¿Y el proceso?
+c) ¿La interacción del material y el proceso es significativa? Interprete el gráfico del perfil. 
+d) ¿Se verifican las condiciones para realizar un análisis de la varianza?
+
+
+Como se indica en el enunciado, en este inciso se estudiará la absorción de pañales, los cuales han sido elaborados con tres tipos de materiales (A, B y C) y por medio de tres procesos (P1,P2 y P3), entonces el material y el procesos son los factores. Los resultados obtenidos permitiran conocer si la influencia de uno de los factores varía dependiendo de los niveles del otro factor, es decir, si la influencia del factor material sobre la absorción es distinta según el tipo de proceso empleado. Para ello se inicia leyendo los datos:
+
+```{r}
+datos2<-read.csv("problema3.csv")
+datos2
+```
+
+
+Como se puede ver en la lectura del archivo, la primera columna representa la medida de absorción, la segunda columna el material y la tercera el proceso. Para organizar los datos se escribió la siguiente instrucción:
+
+```{r}
+datos2$material<-factor(datos2$material,labels = c('material1','material2','material3'))
+datos2$proceso<-factor(datos2$proceso,labels = c('proceso1','proceso2','proceso3'))
+datos2
+```
+
+```{r}
+names(datos2)
+
+```
+
+```{r}
+attach(datos2)
+```
+
+
+Para tener una idea del comportamiento de los datos se presenta a continuación el diagrama de caja de la absorción en función del material: 
+
+```{r}
+boxplot(absorcion ~ material,data = datos2, col=c("yellow", "blue", "red"))
+```
+
+De este diagrama presentado se observa que el material 1 y 2 proporcionan el mismo grado de absorción, a diferencia del material 3 que tiene una absorción menor. También se puede observar que el material 1 tiene una dispersión mayor, por lo tanto, si bien es cierto que el material tiene tiene la mayor absorción, tambien es cierto que presenta una gran dispersión, y esta es una observación que debe tomarse en cuenta para las conclusiones. 
+
+Por otra parte, el diagrama de caja de la absorción en función del proceso, generado a continuación, muestra que tanto el proceso 1 como el 2 dan el un valor similar de absorción, mientras que el proceso 3 brinda la menor absorción. Sin embargo, al igual que en el caso caso anterior, el proceso 1 tiene una mayor dispersión de datos. 
+
+
+```{r}
+boxplot(absorcion ~ proceso,data = datos2, col=c("yellow", "blue", "red"))
+```
+
+
+Una vez que se ha estudiaron de manera descriptiva los datos se realizó el análisis de varianza de dos factores,
+
+El manejo de datos inicia calculando el número de replicas por cada combinación:
+
+```{r}
+replicas <- tapply(absorcion, list(material,proceso), length)
+replicas
+```
+
+Así, el número total de datos es:
+
+```{r}
+N<-sum(replicas)
+N
+```
+
+
+Además, la suma de cada una de las combinaciones se calcula como sigue:
+
+```{r}
+sumacombs<-tapply(absorcion, list(material,proceso), sum)
+sumacombs
+```
+
+Y la suma de todas las observaciones es:
+
+```{r}
+sumobs<-sum(sumacombs)
+sumobs
+```
+De esta manera, se calcula el promedio de cada observación:
+
+```{r}
+promcombs<-tapply(absorcion, list(material,proceso), mean)
+promcombs
+```
+Y el promedio de todas las abservaciones es:
+
+```{r}
+mean(promcombs)
+```
+Presentando la suma de los valores para cada modalidad por separado y la suma de las observaciones según el proceso:
+
+```{r}
+apply(sumacombs,1,sum)
+```
+
+
+```{r}
+apply(sumacombs, 2, sum)
+```
+Para obtener el ANOVA:
+
+```{r}
+attach(datos2)
+```
+
+```{r}
+modelo2<-aov(absorcion ~ material+proceso+material*proceso)
+summary(modelo2)
+```
+
+De los resultados obtenidos de la ANOVA se observa que dado que el valor de p del material y del proceso es menor a 0.05 se puede rechazar la hipótesis nula y se concluye que tanto como el material y el proceso influyen en los niveles de absorción.  
+
+Para poder dar por válidos los resultados del ANOVA es necesario verificar que se cumplen las condiciones de un ANOVA.
+
+```{r}
+par(mfrow=c(1,2))
+plot(modelo2)
+```
+
+De esta figura se observa que los residuos siguen una linea recta, lo que indica normalidad. Graficando el histograma de los datos: 
+
+```{r}
+par (mfrow=c(2,2))
+g = datos2$absorcion
+m<-mean(g)
+std<-sqrt(var(g))
+hist(g, breaks = "Sturges", col = "cyan", main= "Distribución de Valores"
+, cex.main=1.0)
+hist(g, density=30, breaks = "Sturges", prob=TRUE, main= "Distribución V
+alores", cex.main=1.0)
+hist(g, density=30, prob=TRUE, col = 12,
+xlab="Absorcion", ylim=c(0, 1.90),
+main="curva normal", cex.main=1.0)
+curve(dnorm(x, mean=m, sd=std),
+col="darkblue", lwd=2, add=TRUE, yaxt="n")
+zg<-(g-m)/std
+hist(zg, density=30, prob=TRUE, col = 12,
+xlab="Valores estandar", ylim=c(0, 0.70),
+main="Curva Normal Estándar", cex.main=1.0)
+curve(dnorm(x, mean=0, sd=1),
+col="darkblue", lwd=2, add=TRUE, yaxt="n")
+```
+
+De la figura, se observa que el histograma de los datos de absorción, con clases obtenidas por el método de Sturges, siguen una distribución normal. 
+
+```{r}
+par(mfrow=c(1,2))
+hist(datos2$absorcion, cex.main=1.0)
+qqnorm(datos2$absorcion, cex.main=1.0)
+```
+
+
+De la figura anterior, se observa de la grafica cuantil-cualtil (q-q) sigue una linea recta y por lo tanto se cumple la condición de normalidad.
+
+Otro modo de comprobar la normalidad de una variable es por medio del test de *Shapiro-Wilks*. Esta prueba plantea la hipótesis nula que una muestra proviene de una distribución normal, y por ende plantea una hipótesis alternativa que sostiene que la distribución no es normal.
+
+
+
+## Prueba de Shapiro Wilk 
+
+```{r}
+sw2<-shapiro.test(datos2$absorcion)
+print(sw2)
+```
+Para verificar los resultados de la prueba de Shapiro-Wilk:
+
+```{r}
+aov_residuals2<-residuals(object = modelo2)
+shapiro.test(aov_residuals2)
+```
+
+Como se puede observar, para un nivel de significancia del 0.05, el p-valor del 0.77 es mucho mayor que 0.05, por lo que no se rechaza la hipotesis nula, es decir, se puede concluir que la variable sigue una distribución normal.
+
+Por otra parte, la prueba de Kolmogorov permite estudiar si una muestra procede de una población con una determinada distribución (media y desviación típica), no está limitado únicamente a la distribución normal. A continuación Se ejecuta con la función *ks.test()*, que como se puede observar, el p-valor es 0.78, que es mayor a 0.05, concluyendo así que se satisface la condición de normalidad.
+
+```{r}
+ks2 <- ks.test(datos2$absorcion,"pnorm",mean=mean(datos2$absorcion),sd=sd(datos2$absorcion))
+print(ks2)
+```
+
+Finalmente, la prueba de igualdad de varianzas se analizó en primer lugar forma gráfica:
+
+```{r}
+plot(modelo2,1)
+```
+
+
+Otro método que permite evalular la igualdad de varianzas es la prueba de Bartlett, esta ermite contrastar la igualdad de varianza en 2 o más poblaciones sin necesidad de que el tamaño de los grupos sea el mismo. En este caso, al evaluar esta prueba se encontró un p-valor, por un lado entre la absorción y el material, y por otro lado entre la absorción y proceso mayor a 0.05, conluyendo así que no existe una diferencia significativa entre las varianzas.
+
+```{r}
+bartlett.test(absorcion ~ material)
+```
+
+```{r}
+bartlett.test(absorcion ~ proceso)
+```
+
+
+De las pruebas anteriores se procedió a calcular el ANOVa considerando la suma de los efectos:
+
+```{r}
+modelo21<-aov(absorcion ~ material+proceso)
+summary(modelo21)
+```
+
+Luego, el ANOVA:
+
+```{r}
+modelo22<-aov(absorcion~material+proceso+proceso*material)
+summary(modelo22)
+```
+
+De la ANOVA presentada, al tener valores de p-value menores a 0.05, se observa que tanto el material como el proceso influyen en la absorción. 
+
+Para determinar los factores que influyen en la respuesta se obtiene la diferecia minima significativa (LSD)
+
+
+Observación: se instalo la paquetería *agricolae*: 
+
+```{r}
+install.packages('agricolae', repos="http://cran.rstudio.com/")
+```
+
+```{r}
+library(agricolae)
+LSD2<-LSD.test(modelo2,"proceso")
+LSD2
+```
+
+Como sabemos el análisis LSD es una opción para realizar un análisis exploratorio de las diferencias en los tratamientos, se puede observar, el resultado de la LSD es 0.0894,que el es límite que permite definir diferencias entre los modos de aplicación.
+
+Obteniendo los análisis LSD del modelo 21 y 22:
+
+```{r}
+LSD21<-LSD.test(modelo21, "material")
+LSD21
+```
+
+
+De lo anterior, se observa que la LSD es 0.1172, que es el límite que permite observar diferencias significativas entre los materiales.
+
+
+Otro modo de obtener los grupos con diferencias significativas es la prueba de Tukey:
+
+```{r}
+TukeyHSD(modelo2)
+```
+
+A partir del test de Tukey se tienen las siguientes observaciones:
+
+1. No se observan diferencias significativas sobre la absorción entre el material 2 y el material 1.
+2. Al contrario que lo anterior, se observan diferencias significativas sobre la absorción entre usar el material 1 y 3, asi como el material 3 y 2.
+4. Con respecto a los procesos, no se observan diferencias significativas sobre la absorción entre el proceso 2 y 1.
+5. Sin embargo, se observan diferencias significativas entre el proceso 3 y 1, asi como el proceso 3 con el 2. 
+
+Para facilitar la comprensión entre las relaciones de las combinaciones entre materiales y procesos, se presenta el diagrama de límites. El cual se interpreta de la siguiente manera: cuando uno de los intervalos incluye el valor de cero, se infiere que la diferencia de un material, o proceso, incluye al cero, es decir, en la práctica no ocasionan diferencias entre usar uno o el otro. 
+
+```{r}
+plot(TukeyHSD(modelo2))
+```
+
+
+```{r}
+interaction.plot(proceso, material, absorcion)
+```
+
+A partir de los resultados presentados anteriormente se puede dar respuesta a cada una de las preguntas del enunciado:
+
+### a) ¿El efecto del material en el poder absorbente depende del proceso o del material? 
+
+Del análisis del ANOVA, se observó que tanto el material como el proceso influyen en la capacidad de absorción. Estos resultados se pueden visualizar en el gráfico de interaación. 
+
+### b) ¿Podría *recomendar* un material? ¿Y *un* proceso?
+
+Con base al gráfico de interacción se pueden hacer las siguientes recomendaciones respecto al material:
+
+1. Se recomienda usar el material 1 o 2 siempre y cuando estos sean realizados por el proceso 1.
+
+2. También puede usarse el material 3 siempre que sea realizado por el proceso 2.
+
+3. Por ultimo, se recomienda utilizar el material 2 siempre que sea realizado por el proceso 3.
+
+Con respecto al proceso se recomienda lo siguiente:
+
+1. Se recomienda aplicar el proceso 1, siempre y cuando se emplee el material 1 o 2, ya que este tiene los mayores valores de absorción. 
+
+2. Después, se recomienda aplicar el proceso 2, siempre y cuando se emplee el material 1 o 3. 
+
+3. Finalmente, se recomienda aplica el proceso 3, ya que este es el que menor capacidad de absorción tiene. 
+
+
+### c) ¿La interacción del material y el proceso es significativa? Interprete el gráfico del perfil.
+
+El gráfico de interacción permite hacer las siguientes interpretaciones:
+
+1. Con respecto al material 1:
+
+  a) El máximo de poder de absorción corresponde al proceso 1 con un valor de 2.2, y disminuye en aproximadamente el $10\%$ en el proceso 2, siendo el proceso 3 el que menor capacidad de absorción con un valor de 1.8.
+
+2. Con respecto al material 2:
+  a) La capacidad de absorción es mayor cuando se emplea el proceso 2, el cual tiene un valor de aproximadamente 2.2, se observa una absorción ligeramente menor cuando se emplea el proceso 3, sin embargo, se el proceso 2 el es que menor absorción tiene con un valor de aproximadamente 1.85.
+  
+3. Con respecto al material 3 (linea continua):
+  a) Se observa que el proceso 2 brinda la mayor capacidad de absorción con un valor de aproximadamente 2.2. Los proceso 1 y 2 presentan una absorción muy similar y muy baja con respecto al proceso 2.
+  
+  
+
+### d) ¿Se verifican las condiciones para realizar un análisis de la varianza?
+
+Si, se verificó la normalidad por método grafico y se observó que las mediciones siguen una distribución normal. Además, la prueba de Shapiro Wilk como de Kolmogorov permitieron corroborar lo anterior, al tener cada una un p-valor mayor al 0.05, correspondiente a la hipotesis nula de normalidad. 
+
+Así mismo, la prueba de igualdad de varianzas se estudio gráficamente por medio del gráfico de residuos y además, se aplico la prueba de Bartllet, el cual mostró un p-valor mayor al 0.05, concluyendo asi que no existe una diferencia de varianzas significativas.
+
+
+
+
